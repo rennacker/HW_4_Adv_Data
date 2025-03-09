@@ -1,0 +1,48 @@
+---
+title: "Part 2"
+author: "Travis Renacker"
+date: "`r Sys.Date()`"
+format:
+  html:
+    toc: true
+    toc-location: left
+    toc-depth: 2
+    number_sections: true
+    code-fold: true
+    code-tools: true
+    code-summary: "Show Code"
+    embed-resources: true
+    theme: sandstone
+execute:
+  eval: true
+  message: false
+  warning: false
+
+---
+
+# Overview 
+
+Task 2: Text wrangling and analysis (coder’s choice)
+For this task, prepare a professionally formatted HTML (showing all of your code using code-folding) from a .qmd in which you: 
+
+•	Import text of your choosing (from a PDF, text file, or otherwise) - I encourage you to find some text that is of interest to you, but some suggestions for places to look are listed below this task. You can also import two text files if you want to do a comparison of most frequent words or sentiment analysis. 
+
+•	Wrangle the data to get tokens into tidy format, removing stop words
+
+•	Find and make a finalized visualization of counts for the most frequently used words in the text (this can be split up by chapter / section for comparison, or for the entire document), for example in a column graph or wordcloud, or both.
+
+•	Perform sentiment analysis using one of the lexicons introduced in Lab Week 9 (your choice), and present in a final visualization. 
+
+Include an overview section with subsections that briefly summarize the dataset (this should include a well formatted data citation), the purpose of your analysis, and a pseudocode outline of the steps of your analysis.  Your writeup should look and feel professional in style, tone, and substance.
+Optional: Consider including an image that supports your analysis (e.g., cover art for a book, an image that represents a poem, etc).  Consider applying a Bootswatch theme to your document (theme: themename in the Quarto document header)
+
+Some places where you can find text:
+
+•	Internet Archive (texts)
+
+•	CA digital archive
+
+•	You can also just copy & paste text from other sources online (like websites, news/journal articles, transcripts, etc.) and save as a .txt file to read in
+
+All code, including attached packages, should be included using code-folding.  Make sure to suppress any messages & warnings. Set embed-resources to be true so your HTML is self-contained!
+
