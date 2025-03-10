@@ -126,7 +126,7 @@ salmon_daily <- three_salmon |>
 ```{r} 
 
 # For the monthly time series plot
-ggplot(data = salmons_ts, aes(x = month_year, y = monthly_count, colour = fish_type)) +
+Monthly <- ggplot(data = salmons_ts, aes(x = month_year, y = monthly_count, colour = fish_type)) +
   geom_line() + 
   scale_colour_brewer(palette = "Dark2", labels = c("Coho", "Jack Coho", "Steelhead")) +  # Use Dark2 color palette
   labs(
@@ -141,7 +141,7 @@ ggplot(data = salmons_ts, aes(x = month_year, y = monthly_count, colour = fish_t
                                title.hjust = 0.5))
 
 # Daily Time Series Plot
-ggplot(data = salmon_daily, aes(x = date, y = daily_count, colour = fish_type)) +
+Daily <- ggplot(data = salmon_daily, aes(x = date, y = daily_count, colour = fish_type)) +
   geom_line() + 
   scale_colour_brewer(palette = "Dark2", labels = c("Coho", "Jack Coho", "Steelhead")) +   # Use Dark2 color palette
   labs(
@@ -156,7 +156,27 @@ ggplot(data = salmon_daily, aes(x = date, y = daily_count, colour = fish_type)) 
                                title.hjust = 0.5))
                                  
 ```
-### Notable trends for Coho, Jack Coho, and Steelhead Salmon in Willamette Passage
+::: {.panel-tabset}
+
+## Daily Time Series
+
+```{r}
+Daily 
+```
+
+
+## Monthly Agraggated Time Series
+
+```{r}
+
+Monthly
+
+```
+
+
+## Notable Trends 
+
+### Coho, Jack Coho, and Steelhead Salmon in Willamette Passage 2001-2010
 
  -  During this scale of time there appears to be a clear seasonality for each species. The time scale appears to be too narrow to parse out cyclical trends. 
  - The Coho and Jack Coho appear to have similar trends, with the Jack Coho having a slightly lower count. Both species appear to be increasing multiplicatively. 
@@ -170,6 +190,9 @@ ggplot(data = salmon_daily, aes(x = date, y = daily_count, colour = fish_type)) 
 -   Any notable outliers or additional patterns?
 
 #######################################################################################
+
+:::
+
 
 ```{r}
 #coho plot 
@@ -243,6 +266,7 @@ steelhead_p <- salmon_daily %>%
 
 
 ```{r}
+
 # Remove all individual legends
 jack_plot <- jack_p + theme(legend.position = "none")
 coho_plot <- coho_p + theme(legend.position = "none")
@@ -250,17 +274,43 @@ steelhead_plot <- steelhead_p + theme(legend.position = "none")
 
 # Combine with a collected legend on the right
 combined_plots <- (jack_plot / coho_plot / steelhead_plot) + 
-  plot_layout(heights = c(1, 1, 1)) +
-  plot_layout(guides = "collect") &  # Collect all legends into one
-  theme(legend.position = "right") &  # Place the collected legend on the right
-  theme(plot.margin = margin(10, 10, 10, 10)) &
-  plot_title
+  plot_layout(heights = c(1, 1, 1)) +   # Stack plots vertically with equal height
+  plot_layout(guides = "collect") +  # Collect all legends into one
+  theme(legend.position = "right",   # Place the collected legend on the right
+        plot.margin = margin(10, 10, 10, 10)) +  # Adjust plot margins
+  plot_annotation(title = "Salmon Passage by Species")  # Add a title for the combined plot
 
+# Display the combined plot
 combined_plots
 
 ```
+::: {.panel-tabset}
 
+## Coho
 
+```{r}
+
+coho_p
+ 
+```
+
+## Jack Coho
+
+```{r}
+
+jack_p
+
+```
+
+## Steehead
+
+```{r}
+
+steelhead_p
+
+```
+
+:::
 
 Part 2: Seasonplots
 •	A finalized seasonplot for each species (coho, jack coho, steelhead) in its own panel. You can either facet_wrap/facet_grid, or use patchwork or cowplot, to make the figure. Add a figure caption.
