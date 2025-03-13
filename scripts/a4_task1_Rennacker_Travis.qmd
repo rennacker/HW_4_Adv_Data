@@ -12,7 +12,7 @@ format:
     code-tools: true
     code-summary: "Show Code"
     embed-resources: true
-    theme: superhero
+    theme: sandstone
 execute:
   eval: true
   message: false
