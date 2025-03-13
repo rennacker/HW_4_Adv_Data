@@ -1,0 +1,270 @@
+---
+title: "Part 2"
+author: "Travis Renacker"
+date: "`r Sys.Date()`"
+format:
+  html:
+    toc: true
+    toc-location: left
+    toc-depth: 2
+    number_sections: true
+    code-fold: true
+    code-tools: true
+    code-summary: "Show Code"
+    embed-resources: true
+    theme: sandstone
+execute:
+  eval: true
+  message: false
+  warning: false
+
+---
+
+
+
+# Overview 
+
+####libraries
+
+```{r setup}
+
+library(tidyverse)
+library(tidytext)
+library(pdftools)
+library(ggwordcloud)
+library(textdata)
+```
+
+
+# Text 
+```{r}
+hhgttg_text <- pdftools::pdf_text(here::here('data', 'Douglas_Adams_The_Hitchhikers_Guide_to_the_Galaxy_1995.pdf'))
+
+```
+
+
+
+```{r}
+hitch_3 <- hhgttg_text[3]
+hitch_2 <- hhgttg_text[2]
+hitch_1 <- hhgttg_text[1]
+```
+
+
+
+```{r}
+#| output: false
+
+
+# Assuming you have your PDF text in a variable called text_content
+hitch_words <- tibble(text = hhgttg_text) %>%
+  # First, normalize whitespace
+  mutate(text = str_replace_all(text, "\\s+", " ")) %>%
+  
+  # Replace apostrophes with a unique placeholder BEFORE any tokenization
+  mutate(text = str_replace_all(text, "'", "TEMP_APOSTROPHE")) %>%
+  
+  
+  
+  # Add spaces around other punctuation to prepare for tokenization
+  mutate(text = str_replace_all(text, "([[:punct:]])(?!')", " \\1 ")) %>%
+  
+  # Split the text into individual words
+  separate_rows(text, sep = " ") %>%
+  
+  anti_join(stop_words, by = c("text" = "word")) %>%
+  
+  # Remove empty strings
+  filter(text != "") %>%
+  
+  # Remove tokens that are just punctuation
+  filter(!str_detect(text, "^[[:punct:]]+$")) %>%
+  
+  # Remove remaining punctuation EXCEPT our apostrophe placeholder
+  mutate(text = str_replace_all(text, "[\"(),;:.!?\\[\\]{}–-]", "")) %>%
+  
+  # Restore real apostrophes
+  mutate(text = str_replace_all(text, "TEMP_APOSTROPHE", "'")) %>%
+  
+  # Convert to lowercase
+  mutate(text = tolower(text)) %>%
+  
+  # Add word index
+  mutate(word_index = row_number()) %>%
+  
+  # Rearrange columns
+  select(word_index, text)
+
+# View the result
+head(hitch_words, 20)
+```
+
+
+```{r}
+hitch_wordcount <- hitch_words  |>
+  count(text)
+```
+
+
+```{r}
+#| output: false
+
+hitch_clean <- hitch_wordcount |> 
+  anti_join(stop_words, by = c("text" = "word")) 
+
+total_wordcount <- hitch_clean |>
+  group_by(text) |>
+  summarize(count= sum(n),
+            .groups = "drop")
+
+
+
+head(total_wordcount)
+
+
+```
+
+```{r}
+
+# List of names to capitalize because they are names believe it or not
+names_to_capitalize <- c("dent", "prosser", "arthur", "ford", "prefect", "trillian", "zaphod", "beeblebrox", "marvin", "slartibartfast", "agrajag", "damogran")
+
+
+#filter for the 20 most common used words and make a bar chart showing the most common words 
+most_common <- total_wordcount |> 
+  filter(!str_detect(text, "\\bdidn\\b") & 
+         !str_detect(text, "\\bll\\b") & 
+         !str_detect(text, "\\bdon\\b") & 
+         !str_detect(text, "\\ber\\b") & 
+           !str_detect(text, "\\bhey\\b") &
+         !str_detect(text, "\\bve\\b")) |>  # Remove contraction stop words from the top 30 
+   mutate(text = ifelse(text %in% names_to_capitalize, str_to_title(text), text)) |>
+  filter(count > 40) |>           # create top 30 list
+  arrange(desc(count))            # largest first
+
+#cross reference the list without our word work to see if it wordked
+
+most_common1 <- total_wordcount |> 
+
+  filter(count > 30) |>           # Keep rows where 'count' is greater than 30
+  arrange(desc(count))            # Sort by descending 'count'
+```
+
+
+```{r}
+
+ggplot(most_common, aes(y = reorder(text, count), x = count)) +
+  geom_bar(stat = "identity", 
+           fill = "cadetblue1", 
+           width = 1,                # Width = 1 removes gaps between bars
+           color = "black",          # Adds black border
+           size = 0.5) +             # Border thickness
+ labs(y = "Top 24", x = NULL, title = "Most Common Words in the 'The Hitch Hiker's Guide to the Galaxy'") +
+  theme_minimal() +
+  theme(
+    axis.text.y = element_text(size = 11),  # Increased text size
+    axis.title = element_text(size = 12, face = "bold"),
+    plot.title = element_text(size = 14, face = "bold"),
+    plot.margin = margin(b = 20, l = 20, r = 20, t = 20),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor = element_blank()
+  ) +
+  scale_x_continuous(expand = expansion(mult = c(0, 0.05)))
+
+```
+
+
+```{r}
+
+diverse_word_usage <- total_wordcount |>
+  
+filter(!str_detect(text, "\\bdidn\\b") & 
+         !str_detect(text, "\\bll\\b") & 
+         !str_detect(text, "\\bdon\\b") & 
+         !str_detect(text, "\\ber\\b") & 
+          !str_detect(text, "\\bhey\\b") &
+         !str_detect(text, "\\bve\\b")) |>  # Remove contraction stop words from the top 30 
+  
+    mutate(text = ifelse(text %in% names_to_capitalize, str_to_title(text), text)) |> #capitalize names like before
+  arrange(desc(count))
+
+
+
+```
+
+```{r}
+# Create a data frame showing how many words appear with specific frequencies
+word_frequency_distribution <- diverse_word_usage %>%
+  # Group by count (number of times a word appears)
+  group_by(count) %>%
+  # Count how many words have this frequency
+  summarize(number_of_words = n()) %>%
+  # Sort from highest to lowest frequency
+  arrange(desc(count))
+```
+
+
+```{r}
+ggplot(word_frequency_distribution, aes(x = count, y = number_of_words)) +
+  geom_point(size = 3, color = "darkblue") +  # Add points
+  geom_line(linewidth = 1, color = "cadetblue1") +  # Connect with lines
+  labs(x = "Word Frequency", 
+       y = "Number of Words", 
+       title = "Distribution of Word Frequencies") +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(size = 11, angle = 45, hjust = 1),  # Angled x-axis labels
+    axis.title = element_text(size = 12, face = "bold"),
+    plot.title = element_text(size = 14, face = "bold"),
+    plot.margin = margin(b = 40, l = 20, r = 20, t = 20)  # Extra bottom margin for angled text
+  )
+
+
+```
+
+```{r}
+
+ggplot(word_frequency_distribution, aes(y = number_of_words, x = count)) +
+  geom_bar(stat = "identity", 
+           fill = "cadetblue1", 
+           width = 1,                # Width = 1 removes gaps between bars
+           color = "black",          # Adds black border
+           size = 0.5) +             # Border thickness
+ labs(y = "Word Repeated", x = "Number of Words Repeated This Many Times", title = "Number of Times Words Were Used'") +
+  theme_minimal() +
+  theme(
+    axis.text.y = element_text(size = 11),  # Increased text size
+    axis.title = element_text(size = 12, face = "bold"),
+    plot.title = element_text(size = 14, face = "bold"),
+    plot.margin = margin(b = 20, l = 20, r = 20, t = 20),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor = element_blank()
+  )
+```
+
+
+
+Task 2: Text wrangling and analysis (coder’s choice)
+For this task, prepare a professionally formatted HTML (showing all of your code using code-folding) from a .qmd in which you: 
+
+•	Import text of your choosing (from a PDF, text file, or otherwise) - I encourage you to find some text that is of interest to you, but some suggestions for places to look are listed below this task. You can also import two text files if you want to do a comparison of most frequent words or sentiment analysis. 
+
+•	Wrangle the data to get tokens into tidy format, removing stop words
+
+•	Find and make a finalized visualization of counts for the most frequently used words in the text (this can be split up by chapter / section for comparison, or for the entire document), for example in a column graph or wordcloud, or both.
+
+•	Perform sentiment analysis using one of the lexicons introduced in Lab Week 9 (your choice), and present in a final visualization. 
+
+Include an overview section with subsections that briefly summarize the dataset (this should include a well formatted data citation), the purpose of your analysis, and a pseudocode outline of the steps of your analysis.  Your writeup should look and feel professional in style, tone, and substance.
+Optional: Consider including an image that supports your analysis (e.g., cover art for a book, an image that represents a poem, etc).  Consider applying a Bootswatch theme to your document (theme: themename in the Quarto document header)
+
+Some places where you can find text:
+
+•	Internet Archive (texts)
+
+•	CA digital archive
+
+•	You can also just copy & paste text from other sources online (like websites, news/journal articles, transcripts, etc.) and save as a .txt file to read in
+
+All code, including attached packages, should be included using code-folding.  Make sure to suppress any messages & warnings. Set embed-resources to be true so your HTML is self-contained!
+

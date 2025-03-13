@@ -1,0 +1,301 @@
+---
+title: "Willamette Falls Fish Passage Time Series: A Summary"
+author: "Travis Renacker"
+date: "`r Sys.Date()`"
+format:
+  html:
+    toc: true
+    toc-location: left
+    toc-depth: 2
+    number_sections: true
+    code-fold: true
+    code-tools: true
+    code-summary: "Show Code"
+    embed-resources: true
+    theme: superhero
+execute:
+  eval: true
+  message: false
+  warning: false
+---
+
+# Overview
+
+Overview (above the tabs) should contain, in whatever order you choose: • An overview section with subsections that briefly summarize the dataset (this should include a well formatted data citation - provider, title, URL, date accessed - use info and links above to find all this out), the purpose of your analysis, and a pseudocode outline of the steps of your analysis. Your writeup should look and feel professional in style, tone, and substance.
+
+![Elephant](fish.png)
+
+##### Library
+
+```{r setup}
+library(tidyverse)
+library(here)
+library(lubridate)
+library(tsibble)
+library(feasts)
+library(fable)
+library(patchwork)
+library(ggstream)
+```
+
+##### Raw Data
+
+```{r}
+
+# Load the raw data
+
+fish_data_raw <- read_csv(here("data", "willamette_fish_passage.csv")) |> janitor::clean_names()
+
+```
+
+```{r}
+
+#filter for three species, replace NA with 0, and pivot longer columns "fish_type" and "count" and mutate date into date format instead of character
+
+three_salmon <- fish_data_raw |> 
+  select(date, coho, jack_coho, steelhead) |>  
+  mutate(across(c(coho, jack_coho, steelhead), ~ replace_na(., 0))) |>  #NA to 0
+  pivot_longer(
+    cols = c(coho, jack_coho, steelhead),  # Columns to pivot
+    names_to = "fish_type",  # column to hold the names of the fish types
+    values_to = "count"  # column to hold the fish count
+  ) |> 
+  mutate(date = mdy(date))  # Convert character 'date' to Date format
+
+```
+
+##### EDA
+
+```{r}
+#| output: false
+
+#data vizualization and exploration
+
+ggplot(data = three_salmon) +
+  geom_point(aes(x = date, y = count, color = fish_type)) + 
+  scale_color_brewer(palette = "Dark2")
+```
+
+##### Stibble and Data Frames
+
+```{r}
+# Create base tsibble
+salmons_ts <- three_salmon |> tsibble(key = fish_type, index = date)
+
+# Weekly aggregation
+salmon_weekly <- salmons_ts |> 
+  index_by(week = ~ yearweek(.)) |>
+  group_by(fish_type) |> 
+  summarise(count = sum(count))
+
+# Monthly aggregation
+salmon_monthly <- salmons_ts |> 
+  index_by(month = ~ yearmonth(.)) |>
+  group_by(fish_type) |> 
+  summarise(count = sum(count))
+
+# Yearly aggregation
+salmon_yearly <- salmons_ts |> 
+  index_by(year = ~ year(.)) |>
+  group_by(fish_type) |> 
+  summarise(count = sum(count))
+
+```
+
+##### Original Time Series
+
+```{r}
+
+# Daily Time Series Plot
+Daily <- ggplot(data = salmons_ts, aes(x = date, y = count, colour = fish_type)) +
+  geom_line() + 
+  scale_colour_brewer(palette = "Dark2", labels = c("Coho", "Jack Coho", "Steelhead")) +   # Use Dark2 color palette
+  labs(
+    x = NULL,
+    y = "Fish Count at Willamette Falls",
+    title = "Daily Fish Counts by Fish Type"
+  ) + 
+  theme_minimal() +  # Use a minimal theme for the plot
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +  # Rotate x-axis labels for better readability
+  guides(colour = guide_legend(title = "Salmon Type", 
+                               title.position = "top", 
+                               title.hjust = 0.5))
+                                 
+```
+
+##### Seasonplots
+
+```{r}
+#steelhead plot
+steelhead_p <- salmon_weekly %>%
+  filter(fish_type == 'steelhead') %>%
+  gg_season(count,  max_col_discrete=10, pal = rev(viridis::plasma(n = 10)))  + 
+  theme_minimal() +
+  theme(
+    plot.title = element_text(face = "bold", size = 14, hjust = 0.5),
+    plot.subtitle = element_text(size = 11, hjust = 0.5),
+    axis.title = element_text(face = "bold", size = 12),
+    axis.text = element_text(size = 10),
+    legend.title = element_text(face = "bold"),
+    legend.position = "right",
+    panel.grid.minor = element_blank(),
+    panel.border = element_rect(color = "cornsilk", fill = NA)) +
+  labs(
+    x = NULL,
+     y = "Fish Count",
+    title = "Jack Coho",
+    color = "Year",
+    caption = "Data source: Columbia Basin Research")
+
+#jack coho plot
+jack_p <- salmon_weekly %>%
+  filter(fish_type == 'jack_coho') %>%
+  gg_season(count,  max_col_discrete=10, pal = rev(viridis::plasma(n = 10)))  + 
+  theme_minimal() +
+  theme(
+    plot.title = element_text(face = "bold", size = 14, hjust = 0.5),
+    plot.subtitle = element_text(size = 11, hjust = 0.5),
+    axis.title = element_text(face = "bold", size = 12),
+    axis.text = element_text(size = 10),
+    legend.title = element_text(face = "bold"),
+    legend.position = "right",
+    panel.grid.minor = element_blank(),
+    panel.border = element_rect(color = "cornsilk", fill = NA)) +
+  labs(
+    x = NULL,
+     y = "Fish Count",
+    title = "Jack Coho",
+    color = "Year",
+    caption = "Data source: Columbia Basin Research")
+
+#coho plot 
+coho_p <- salmon_weekly %>%
+  filter(fish_type == 'coho') %>%
+  gg_season(count, max_col_discrete=10, pal = rev(viridis::plasma(n = 10))) + 
+  theme_minimal() +
+  theme(
+    plot.title = element_text(face = "bold", size = 14, hjust = 0.5),
+    plot.subtitle = element_text(size = 11, hjust = 0.5),
+    axis.title = element_text(face = "bold", size = 12),
+    axis.text = element_text(size = 10),
+    legend.title = element_text(face = "bold"),
+    legend.position = "right",
+    panel.grid.minor = element_blank(),
+    panel.border = element_rect(color = "cornsilk", fill = NA)) +
+  labs(
+    x = NULL,
+    y = "Fish Count",
+    title = "Coho",
+    color = "Year", 
+    caption = "Data source: Columbia Basin Research")
+
+```
+
+# Steelhead Trout, Coho Salmon and Jack Coho Salmon in Willamette Passage between 2001-2010
+
+### Notable Trends
+
+-   Clear seasonality for each species.
+
+-   The Coho and Jack Coho appear to have similar trends, with the Jack Coho having a slightly lower counts. Both species appear to be increasing multiplicatively. Cyclicality does is not shown during this time frame, more observation is recommended by the author.
+
+-   The Steelhead appear to have a flat, to possibly slight negative trend.
+
+-   Both Coho species appear to have a seasonal peak in September while the Steelhead appear to have a seasonal peak around over summer.
+
+-   From the yearly totals it is clear that there has been a drastic increase in the number of Coho Salmon.
+
+-   The total number of fish observed each year has stayed somewhat flat.
+
+-   As Coho and Jack Coho increase in occurrence the Steelhead appear to diminish within this time series. This can be seen in the proportional plot.
+
+::: panel-tabset
+## Original Time Series
+
+```{r}
+#| fig-cap: "**Figure 1**. Daily Salmon Counts by Fish Type from 2001-2010. Coho, Jack Coho and Steelhead shown."
+
+Daily 
+```
+
+## Seasonplot
+
+```{r}
+#| fig-cap: "**Figure 2**. Seasonplot of Weekly Salmon Counts by Fish Type. Coho, Jack Coho and Steelhead shown."
+
+
+# Remove all individual legends
+jack_plot <- jack_p + theme(legend.position = "none")
+coho_plot <- coho_p + theme(legend.position = "none")
+steelhead_plot <- steelhead_p + theme(legend.position = "none")
+
+# Combine with a collected legend on the right
+combined_plots <- (jack_plot / coho_plot / steelhead_plot) + 
+  plot_layout(heights = c(1, 1, 1)) +   # Stack plots vertically with equal height
+  plot_layout(guides = "collect") +  # Collect all legends into one
+  theme(legend.position = "right") +  # Place the collected legend on the right
+  plot_annotation(title = "Salmon Passage by Species")  # Add a title for the combined plot
+
+# Display the combined plot
+combined_plots
+
+```
+
+## Annual Counts
+
+```{r}
+#| fig.cap: "**Figure 3**. Yearly Fish Totals for Three Fish Species from 2001-2010 in Wllamette fish passage."
+
+salmon_yearly %>% 
+  ggplot(aes(x = year, y = count, fill = fish_type)) +
+  geom_bar(stat = 'identity', position = 'stack') +  
+  scale_fill_brewer(palette = "Dark2", labels = c("Coho", "Jack Coho", "Steelhead")) +  # Color palette
+  scale_x_continuous(breaks = scales::pretty_breaks(n = 10))+  # Ensure whole number labels
+  labs(x = NULL, y = 'Count', fill = 'Fish Species', caption = "Data source: Columbia Basin Research") +  
+  theme(
+    plot.title = element_text(face = "bold", size = 14, hjust = 0.5),
+    plot.subtitle = element_text(size = 11, hjust = 0.5),
+    axis.title = element_text(face = "bold", size = 12),
+    axis.text = element_text(size = 10),
+    legend.title = element_text(face = "bold"),
+    legend.position = "right",
+    panel.grid.minor = element_blank(),
+    panel.border = element_rect(color = "cornsilk", fill = NA),
+    panel.background = element_rect(fill = "white")  # Optional: to ensure a white background
+  )
+
+```
+
+## Proportional Annual Counts
+
+```{r}
+#| fig.cap: "**Figure 4**. Proportional Yearly Fish Totals for Three Fish Species from 2001-2010 in Wllamette fish passage."
+
+proportional_salmon <- three_salmon %>%
+  mutate(year = year(date)) %>%
+  group_by(year, fish_type) %>%
+  summarize(count_sum = sum(count, na.rm = TRUE), .groups = "drop") %>%
+  group_by(year) %>%
+  mutate(proportion = count_sum / sum(count_sum)) %>%
+  ungroup()
+
+ggplot(proportional_salmon, aes(x = year, y = proportion, fill = fish_type)) +
+  geom_stream(type = "proportional") +
+  scale_fill_brewer(palette = "Dark2", labels = c("Coho", "Jack Coho", "Steelhead")) +
+  scale_x_continuous(breaks = scales::pretty_breaks(n = 10))+
+  scale_y_continuous(labels = scales::percent_format()) +
+  labs(
+    title = "Proportional Distribution of Three Fish Types",
+    x = NULL,
+    y = NULL,
+    fill = NULL, 
+    caption = "Data source: Columbia Basin Research"
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "bottom",
+    panel.grid.minor = element_blank()
+  )
+
+```
+:::
