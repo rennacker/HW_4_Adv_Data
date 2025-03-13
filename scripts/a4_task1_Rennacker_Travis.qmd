@@ -21,7 +21,9 @@ execute:
 
 
 
-## Data: Columbia Basin Research, University of Washington. (2023). Columbia River DART (Data Access in Real Time). Retrieved January 25, 2023, from https://www.cbr.washington.edu/dart]
+## Data: 
+
+**Columbia Basin Research, University of Washington. (2023). Columbia River DART (Data Access in Real Time). Retrieved January 25, 2023, from https://www.cbr.washington.edu/dart]**
 
 # Overview
 
@@ -40,9 +42,9 @@ The Willamette Falls Fish Passage is one of the oldest fish ladders in the U.S.,
 - Import Data and adjust NA counts to zero 
 - Simple EDA to understand the best way to manipulate data 
 - Convert data frame to tsibble for easy date manipulation 
-- Create data frames for dialy, weekly, yearly summation. 
+- Create data frames for daily, weekly, yearly summation. 
 - Original Time Series plot: ggplot with geom_line
-- Seasonplot: create three plots for consistent and controlled austhetic (use weekly summation for better understanding of seasonality over time)
+- Seasonplot: create three plots for consistent and controlled aesthetic (use weekly summation for better understanding of seasonality over time)
 - Yearly totals: Geom_bar and stack for raw numbers and a stream plot to understand what part proportionality has to play. 
 - Create a tab system for easy viewing of each graph in one location on the document. 
 
